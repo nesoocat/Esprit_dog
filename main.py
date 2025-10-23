@@ -73,5 +73,3 @@ class Calculator:
         else:
 
             return False
-=======
->>>>>>> 86c4a9e3e3bfc64ef109ab6e1065d42ba32c2dbc
