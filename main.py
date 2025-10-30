@@ -1,74 +1,37 @@
+from flask import Flask, request, jsonify
+from pydantic import BaseModel
 import pandas as pd
-diabetes = pd.read_csv('data/diabetes.csv',sep=',')
-print(diabetes)
+import joblib
 
-import re
+#charger le modele
+model = joblib.load('diabetes_model.pkl')
 
+class InputData(BaseModel):
+    Pregnancies: float
+    Glucose: float
+    BloodPressure: float
+    SkinThickness: float
+    Insulin: float
+    BMI: float
+    DiabetesPedigreeFunction: float
+    Age : float
 
-class Calculator:
+app = Flask(__name__)
+@app.route('/', methods=['GET'])
+def home():
+    return "Bienvenue sur l'API de prédiction du diabète!"
 
-    def __init__(self):
-
-        self.left_value = 0
-
-        self.right_value = 0
-
-
-    def calculate(self, operation):
-
-        if self._check_and_set_value(operation):
-
-            if "+" in operation:
-
-                return self.left_value + self.right_value
-
-            elif "-" in operation:
-
-                return self.left_value - self.right_value
-
-            elif "*" in operation:
-
-                return self.left_value * self.right_value
-
-            elif "/" in operation:
-
-                try:
-
-                    return self.left_value / self.right_value
-
-                except ZeroDivisionError:
-
-                    return "Invalid operation : Zero Division Error"
-
-            else:
-
-                return "Invalid operation"
-
-        else:
-
-            return "Invalid operation"
-
-
-    def _check_and_set_value(self, operation):
-
-        operation = operation.replace(" ", "")
-
-        values = re.split('\+|\-|\*|\/', operation)
-
-        if len(values) == 2:
-
-            try:
-
-                self.left_value = float(values[0])
-
-                self.right_value = float(values[1])
-
-                return True
-
-            except ValueError:
-
-                return False
-
-        else:
-
-            return False
+@app.route('/predict', methods=['POST'])
+def predict():
+    if not request.json:
+        return jsonify({'error': 'No data provided'}), 400
+    try:
+        input_data = InputData(**request.json)
+        input_data_df =pd.DataFrame([input_data.dict()])
+        prediction = model.predict(input_data_df)
+        return jsonify({'prediction': int(prediction[0])})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+if __name__ == '__main__':
+    app.run(debug=True,port=8000)
